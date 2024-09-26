@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"github.com/vorticist/logger"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,7 +24,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Errorf("%v", err)
 		os.Exit(1)
 	}
 }
@@ -38,7 +39,7 @@ func runProjectSetup(cmd *cobra.Command, args []string) {
 	// Step 1: Validate if path contains a Go project and extract module name
 	moduleName, err := getModuleName(projectPath)
 	if err != nil {
-		fmt.Println("Error:", err)
+		logger.Errorf("Error: %v", err)
 		return
 	}
 
@@ -46,7 +47,7 @@ func runProjectSetup(cmd *cobra.Command, args []string) {
 	binaryName := moduleName
 	binaryPath, err := buildGoProject(projectPath, binaryName)
 	if err != nil {
-		fmt.Println("Failed to build the Go project:", err)
+		logger.Errorf("Failed to build the Go project: %v", err)
 		return
 	}
 
@@ -54,7 +55,7 @@ func runProjectSetup(cmd *cobra.Command, args []string) {
 	serviceFilePath := filepath.Join(projectPath, fmt.Sprintf("%s.service", binaryName))
 	generateServiceFile(serviceFilePath, binaryPath, binaryName)
 
-	fmt.Println("Service file created at:", serviceFilePath)
+	logger.Infof("Service file created at: %v", serviceFilePath)
 
 	// Step 4: Optionally install the service file
 	if installFlag {
@@ -138,10 +139,10 @@ func copyServiceToSystemd(serviceFilePath, serviceName string) {
 	copyCmd.Stderr = os.Stderr
 	err := copyCmd.Run()
 	if err != nil {
-		fmt.Println("Failed to copy service file to systemd:", err)
+		logger.Errorf("Failed to copy service file to systemd: %v", err)
 		return
 	}
-	fmt.Println("Service file copied to:", systemdPath)
+	logger.Infof("Service file copied to: %v", systemdPath)
 
 	// Reload systemd daemon
 	reloadCmd := exec.Command("sudo", "systemctl", "daemon-reload")
@@ -149,7 +150,7 @@ func copyServiceToSystemd(serviceFilePath, serviceName string) {
 	reloadCmd.Stderr = os.Stderr
 	err = reloadCmd.Run()
 	if err != nil {
-		fmt.Println("Failed to reload systemd daemon:", err)
+		logger.Errorf("Failed to reload systemd daemon: %v", err)
 		return
 	}
 
@@ -159,7 +160,7 @@ func copyServiceToSystemd(serviceFilePath, serviceName string) {
 	enableCmd.Stderr = os.Stderr
 	err = enableCmd.Run()
 	if err != nil {
-		fmt.Println("Failed to enable service:", err)
+		logger.Errorf("Failed to enable service: %v", err)
 		return
 	}
 
@@ -169,9 +170,9 @@ func copyServiceToSystemd(serviceFilePath, serviceName string) {
 	startCmd.Stderr = os.Stderr
 	err = startCmd.Run()
 	if err != nil {
-		fmt.Println("Failed to start service:", err)
+		logger.Errorf("Failed to start service: %v", err)
 		return
 	}
 
-	fmt.Println("Service enabled and started successfully.")
+	logger.Info("Service enabled and started successfully.")
 }
